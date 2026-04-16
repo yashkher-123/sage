@@ -20,7 +20,21 @@ class Sage_Explainer:
         ranges_dict = {col: (instance[col]-val,instance[col]+val) for col, val in self.std_dict.items()} # dict with perturbation ranges
         self.perturbations = self.get_perturbations(ranges_dict, 10) # dict with feature + all perturbations
 
+        self.sensitivites = {}
+        for feature, perturbation_list in self.perturbations.items():
+            self.sensitivites[feature] = self.get_sensitivity(feature)
+
     
+
+    def get_sensitivity(self, feature_name): # gets sentitivity for single inputted feature, uses existing perturbations
+        perturbation_pred_list = []
+        for perturbation in self.perturbations[feature_name]:
+            perturbed_instance = self.instance
+            perturbed_instance[feature_name] = perturbation
+            perturbation_pred_list.append([perturbation, self.predict_func("perturbed instance")])
+
+        # x=perturbation, y = slope (perturbed_pred-original_pred / perturbed_instance[feature_name]-instance[feature_name])
+        # linear regression of x vs y
 
     def get_scaled_std_ranges(self, data: pd.DataFrame, perturbation_factor):
         std_dict = data.std(ddof=0).to_dict() # assume population level variance
