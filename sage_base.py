@@ -121,7 +121,8 @@ for feature, coef in zip(df.columns, model.coef_):
     print(f"{feature:8}: {coef:>10.4f}")
 
 
-# potential issues: 
+# potential changes: 
 # perturbations with close to zero delta x will result in unstable slope
 # batch predictions rather than one at a time (!!)
 # add option to find relative slopes (normalize features before fit) or just absolute slope (raw data)
+# visualization option with matplotlib
