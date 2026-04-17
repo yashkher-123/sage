@@ -17,24 +17,50 @@ class Sage_Explainer:
         
     def explain(self, instance: dict):
         self.instance = instance
+
+        instance_df = pd.DataFrame([self.instance])
+        self.original_pred = self.predict_func(instance_df)[0]
+
         ranges_dict = {col: (instance[col]-val,instance[col]+val) for col, val in self.std_dict.items()} # dict with perturbation ranges
         self.perturbations = self.get_perturbations(ranges_dict, 10) # dict with feature + all perturbations
 
-        self.sensitivites = {}
+        self.sensitivities = {}
         for feature, perturbation_list in self.perturbations.items():
-            self.sensitivites[feature] = self.get_sensitivity(feature)
+            self.sensitivities[feature] = self.get_sensitivity(feature)
 
-    
+        return self.sensitivities
 
     def get_sensitivity(self, feature_name): # gets sentitivity for single inputted feature, uses existing perturbations
         perturbation_pred_list = []
         for perturbation in self.perturbations[feature_name]:
-            perturbed_instance = self.instance
-            perturbed_instance[feature_name] = perturbation
-            perturbation_pred_list.append([perturbation, self.predict_func("perturbed instance")])
+            perturbed_instance = self.instance.copy()
+
+            perturbed_instance[feature_name] = perturbation # update feature for each perturbation and run model
+            input_df = pd.DataFrame([perturbed_instance])
+            
+            perturbed_pred = self.predict_func(input_df)[0] # only first row in array
+            slope = (perturbed_pred - self.original_pred) / (perturbation - self.instance[feature_name])
+            perturbation_pred_list.append([perturbation, slope])
+
+        regressed_sensitivity = self.regress_sensitivity(perturbation_pred_list, feature_name)
+        return regressed_sensitivity
+
+    def regress_sensitivity(self, perturbation_pred_list: list, feature_name):
+        data = np.array(perturbation_pred_list)
+        x_vals = data[:, 0].reshape(-1, 1)
+        y_slopes = data[:, 1]
+
+        model = LinearRegression()
+        model.fit(x_vals, y_slopes)
+
+        target_x = np.array([[self.instance[feature_name]]])
+
+        sensitivity_pred = model.predict(target_x)[0]
+        return sensitivity_pred
 
         # x=perturbation, y = slope (perturbed_pred-original_pred / perturbed_instance[feature_name]-instance[feature_name])
         # linear regression of x vs y
+
 
     def get_scaled_std_ranges(self, data: pd.DataFrame, perturbation_factor):
         std_dict = data.std(ddof=0).to_dict() # assume population level variance
@@ -45,12 +71,13 @@ class Sage_Explainer:
         perturbation_dict = {}
 
         for col, (low, high) in ranges.items():
+            original_val = (low + high) / 2
             points = np.linspace(low, high, num_samples) # evenly space perturbations based on range+unm_samples
+            points = [p for p in points if not np.isclose(p, original_val)] # avoid divide by zero when getting slope
             perturbation_dict[col] = points.tolist() # convert to list and add to dict
             
+            
         return perturbation_dict
-
-
 
 
 
@@ -67,3 +94,8 @@ model.fit(df, target)
 explainer = Sage_Explainer(model.predict)
 explainer.fit(df)
 """
+
+# potential issues: 
+# perturbations with close to zero delta x will result in unstable slope
+# need to implement weighted perturbations
+# batch predictions rather than one at a time
