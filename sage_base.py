@@ -74,7 +74,7 @@ class Sage_Explainer:
             original_val = (low + high) / 2
             points = np.linspace(low, high, num_samples) # evenly space perturbations based on range+unm_samples
             points = [p for p in points if not np.isclose(p, original_val)] # avoid divide by zero when getting slope
-            perturbation_dict[col] = points.tolist() # convert to list and add to dict
+            perturbation_dict[col] = points # convert to list and add to dict
             
             
         return perturbation_dict
@@ -82,7 +82,10 @@ class Sage_Explainer:
 
 
 
-"""
+
+
+
+
 
 
 diabetes = load_diabetes()
@@ -93,9 +96,20 @@ model.fit(df, target)
 
 explainer = Sage_Explainer(model.predict)
 explainer.fit(df)
-"""
+
+instance = df.iloc[0].to_dict()
+sensitivities = explainer.explain(instance)
+print("sensitivities from explainer")
+for feature, val in sensitivities.items():
+    print(f"{feature:8}: {val:>10.4f}")
+
+print("actual linear model coefficients")
+for feature, coef in zip(df.columns, model.coef_):
+    print(f"{feature:8}: {coef:>10.4f}")
+
 
 # potential issues: 
 # perturbations with close to zero delta x will result in unstable slope
 # need to implement weighted perturbations
 # batch predictions rather than one at a time
+# add option to find relative slopes (normalize features before fit) or just absolute slope (raw data)
