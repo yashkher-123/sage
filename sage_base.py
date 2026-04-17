@@ -9,11 +9,11 @@ class Sage_Explainer:
     def __init__(self, predict_func):
         self.predict_func = predict_func # user input prediction function
 
-    def fit(self, data_X: pd.DataFrame):
+    def fit(self, data_X: pd.DataFrame, perturbation_strength=0.3):
 
         self.perturbation_factor = 0.3 # perturb feature in range (f_value - (f_std*factor) , f_value + (f_std*factor))
         self.data_X = data_X
-        self.std_dict = self.get_scaled_std_ranges(data_X, 0.3) # get feature + scaled std for range radius
+        self.std_dict = self.get_scaled_std_ranges(data_X, perturbation_strength) # get feature + scaled std for range radius
         
     def explain(self, instance: dict):
         self.instance = instance
@@ -39,19 +39,32 @@ class Sage_Explainer:
             input_df = pd.DataFrame([perturbed_instance])
             
             perturbed_pred = self.predict_func(input_df)[0] # only first row in array
-            slope = (perturbed_pred - self.original_pred) / (perturbation - self.instance[feature_name])
+            slope = (perturbed_pred - self.original_pred) / (perturbation - self.instance[feature_name]) # secant slope
             perturbation_pred_list.append([perturbation, slope])
 
         regressed_sensitivity = self.regress_sensitivity(perturbation_pred_list, feature_name)
         return regressed_sensitivity
 
-    def regress_sensitivity(self, perturbation_pred_list: list, feature_name):
+    def regress_sensitivity(self, perturbation_pred_list: list, feature_name, uniformness_factor = 1):
         data = np.array(perturbation_pred_list)
+        #reshape array so it works with linear regression
         x_vals = data[:, 0].reshape(-1, 1)
         y_slopes = data[:, 1]
 
+
+        target_val = self.instance[feature_name]
+
+        # normal distribution around true feature value, farther out points have less weight in regression
+        std = self.std_dict[feature_name] / self.perturbation_factor # undo the scaling factor/perturbation strength
+
+        # factor > 1: more uniform, 0<factor<1: center more important
+        uniformness_strength = std * uniformness_factor
+
+        weights = np.exp(-0.5 * ((x_vals.flatten() - target_val) / uniformness_strength)**2)
+
+
         model = LinearRegression()
-        model.fit(x_vals, y_slopes)
+        model.fit(x_vals, y_slopes, sample_weight=weights)
 
         target_x = np.array([[self.instance[feature_name]]])
 
@@ -59,7 +72,7 @@ class Sage_Explainer:
         return sensitivity_pred
 
         # x=perturbation, y = slope (perturbed_pred-original_pred / perturbed_instance[feature_name]-instance[feature_name])
-        # linear regression of x vs y
+        # linear regression of x vs y, secant slope vs perturbation
 
 
     def get_scaled_std_ranges(self, data: pd.DataFrame, perturbation_factor):
@@ -73,7 +86,7 @@ class Sage_Explainer:
         for col, (low, high) in ranges.items():
             original_val = (low + high) / 2
             points = np.linspace(low, high, num_samples) # evenly space perturbations based on range+unm_samples
-            points = [p for p in points if not np.isclose(p, original_val)] # avoid divide by zero when getting slope
+            points = [p for p in points if not np.isclose(p, original_val)] # avoid divide by zero (delta x) when getting slope
             perturbation_dict[col] = points # convert to list and add to dict
             
             
@@ -110,6 +123,5 @@ for feature, coef in zip(df.columns, model.coef_):
 
 # potential issues: 
 # perturbations with close to zero delta x will result in unstable slope
-# need to implement weighted perturbations
-# batch predictions rather than one at a time
+# batch predictions rather than one at a time (!!)
 # add option to find relative slopes (normalize features before fit) or just absolute slope (raw data)
