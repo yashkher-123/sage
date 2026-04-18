@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.datasets import load_diabetes
 from sklearn.linear_model import LinearRegression
 
@@ -29,6 +30,26 @@ class Sage_Explainer:
             self.sensitivities[feature] = self.get_sensitivity(feature)
 
         return self.sensitivities
+    
+    def graph(self):
+        # sort sensitivities by absolute gradient
+        sorted_sensitivities = dict(sorted(self.sensitivities.items(), key=lambda item: abs(item[1])))
+        
+        features = list(sorted_sensitivities.keys())
+        values = list(sorted_sensitivities.values())
+
+
+        colors = ["red" if x < 0 else "green" for x in values]
+        
+        plt.barh(features, values, color=colors)
+        plt.axvline(0, color="black", linewidth=1) # center line
+        plt.xlabel("sensitivity")
+        plt.ylabel("features")
+        plt.title("Feature sensitivities")
+        plt.grid(axis="x", alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+
 
     def get_sensitivity(self, feature_name): # gets sentitivity for single inputted feature, uses existing perturbations
         perturbation_pred_list = []
@@ -120,9 +141,10 @@ print("actual linear model coefficients")
 for feature, coef in zip(df.columns, model.coef_):
     print(f"{feature:8}: {coef:>10.4f}")
 
+explainer.graph()
+
 
 # potential changes: 
-# perturbations with close to zero delta x will result in unstable slope
 # batch predictions rather than one at a time (!!)
 # add option to find relative slopes (normalize features before fit) or just absolute slope (raw data)
-# visualization option with matplotlib
+# do not account for discrete features
