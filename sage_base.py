@@ -26,7 +26,7 @@ class Sage_Explainer:
         self.perturbations = self.get_perturbations(ranges_dict, 10) # dict with feature + all perturbations
 
         self.sensitivities = {}
-        for feature, perturbation_list in self.perturbations.items():
+        for feature, perturbation_list in self.perturbations.items(): # this is where only continuous features can be chosen
             self.sensitivities[feature] = self.get_sensitivity(feature)
 
         return self.sensitivities
