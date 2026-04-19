@@ -23,6 +23,7 @@ class Sage_Explainer:
         self.original_pred = self.predict_func(instance_df)[0]
 
         ranges_dict = {col: (instance[col]-val,instance[col]+val) for col, val in self.std_dict.items()} # dict with perturbation ranges
+        # (feature value - std*factor, feature value + std*factor)
         self.perturbations = self.get_perturbations(ranges_dict, 10) # dict with feature + all perturbations
 
         self.sensitivities = {}
@@ -152,6 +153,5 @@ explainer.graph()
 
 
 # potential changes: 
-# batch predictions rather than one at a time (!!)
 # add option to find relative slopes (normalize features before fit) or just absolute slope (raw data)
 # do not account for discrete features
