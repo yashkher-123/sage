@@ -51,26 +51,33 @@ class Sage_Explainer:
         plt.show()
 
 
-    def get_sensitivity(self, feature_name): # gets sentitivity for single inputted feature, uses existing perturbations
-        perturbation_pred_list = []
-        for perturbation in self.perturbations[feature_name]:
-            perturbed_instance = self.instance.copy()
+    def get_sensitivity(self, feature_name): 
 
-            perturbed_instance[feature_name] = perturbation # update feature for each perturbation and run model
-            input_df = pd.DataFrame([perturbed_instance])
+            perturbation_values = self.perturbations[feature_name]
             
-            perturbed_pred = self.predict_func(input_df)[0] # only first row in array
-            slope = (perturbed_pred - self.original_pred) / (perturbation - self.instance[feature_name]) # secant slope
-            perturbation_pred_list.append([perturbation, slope])
 
-        regressed_sensitivity = self.regress_sensitivity(perturbation_pred_list, feature_name)
-        return regressed_sensitivity
+            batch_df = pd.DataFrame([self.instance] * len(perturbation_values)) # make new df of num_samples copies of instance
+            batch_df[feature_name] = perturbation_values # change given feature series to perturbations
+            
+            batch_preds = np.ravel(self.predict_func(batch_df)) # single predict function per feature
+            # ravel() in case model returns 2d array
+            
+            original_val = self.instance[feature_name]
+            
+            # slope = (pred - original_pred) / (perturbed_val - original_val) (secant slope)
+            slopes = (batch_preds - self.original_pred) / (np.array(perturbation_values) - original_val)
+            # take each prediction, subtract baseline, divide by perturbation minus original feature value
 
-    def regress_sensitivity(self, perturbation_pred_list: list, feature_name, uniformness_factor = 1):
-        data = np.array(perturbation_pred_list)
+            perturbation_pred_list = np.column_stack((perturbation_values, slopes))
+
+            regressed_sensitivity = self.regress_sensitivity(perturbation_pred_list, feature_name) # get sensitivites using x=perturbation, y=slope
+            return regressed_sensitivity
+        
+
+    def regress_sensitivity(self, perturbation_pred_list: np.ndarray, feature_name, uniformness_factor = 1):
         #reshape array so it works with linear regression
-        x_vals = data[:, 0].reshape(-1, 1)
-        y_slopes = data[:, 1]
+        x_vals = perturbation_pred_list[:, 0].reshape(-1, 1)
+        y_slopes = perturbation_pred_list[:, 1]
 
 
         target_val = self.instance[feature_name]
@@ -120,7 +127,7 @@ class Sage_Explainer:
 
 
 
-
+# UNIT TEST: linear model coefficients should match sage sensitivities
 
 diabetes = load_diabetes()
 df = pd.DataFrame(diabetes.data, columns=diabetes.feature_names)
