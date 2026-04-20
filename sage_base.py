@@ -10,11 +10,15 @@ class Sage_Explainer:
     def __init__(self, predict_func):
         self.predict_func = predict_func # user input prediction function
 
-    def fit(self, data_X: pd.DataFrame, perturbation_strength=0.3):
+    def fit(self, data_X: pd.DataFrame, perturbation_strength=0.3, relative_sensitivities = False):
 
         self.perturbation_factor = 0.3 # perturb feature in range (f_value - (f_std*factor) , f_value + (f_std*factor))
         self.data_X = data_X
+
         self.std_dict = self.get_scaled_std_ranges(data_X, perturbation_strength) # get feature + scaled std for range radius
+        self.relative_sensitivities = relative_sensitivities
+
+        self.feature_stds = {col: val / self.perturbation_factor for col, val in self.std_dict.items()} # undo perturbation for raw feature stds
         
     def explain(self, instance: dict):
         self.instance = instance
@@ -29,6 +33,10 @@ class Sage_Explainer:
         self.sensitivities = {}
         for feature, perturbation_list in self.perturbations.items(): # this is where only continuous features can be chosen
             self.sensitivities[feature] = self.get_sensitivity(feature)
+
+        if self.relative_sensitivities:
+            self.sensitivities = {feature_name: sensitivity * self.feature_stds[feature_name] for feature_name, sensitivity in self.sensitivities.items()}
+            # multiply sensitivity by feature std to get model change per std
 
         return self.sensitivities
     
