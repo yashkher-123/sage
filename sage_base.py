@@ -40,7 +40,7 @@ class Sage_Explainer:
 
         return self.sensitivities
     
-    def graph(self):
+    def graph(self): # can only use after .explain()
         # sort sensitivities by absolute gradient
         sorted_sensitivities = dict(sorted(self.sensitivities.items(), key=lambda item: abs(item[1])))
         
@@ -49,7 +49,7 @@ class Sage_Explainer:
 
 
         colors = ["red" if x < 0 else "green" for x in values]
-        
+        # plot sensitivity per feature using self.sensitivities dict
         plt.barh(features, values, color=colors)
         plt.axvline(0, color="black", linewidth=1) # center line
         plt.xlabel("sensitivity")
