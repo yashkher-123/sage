@@ -143,27 +143,27 @@ class Sage_Explainer:
 
 
 # UNIT TEST: linear model coefficients should match sage sensitivities
+if __name__ == "__main__":
+    diabetes = load_diabetes()
+    df = pd.DataFrame(diabetes.data, columns=diabetes.feature_names)
+    target = diabetes.target
+    model = LinearRegression()
+    model.fit(df, target)
 
-diabetes = load_diabetes()
-df = pd.DataFrame(diabetes.data, columns=diabetes.feature_names)
-target = diabetes.target
-model = LinearRegression()
-model.fit(df, target)
+    explainer = Sage_Explainer(model.predict)
+    explainer.fit(df)
 
-explainer = Sage_Explainer(model.predict)
-explainer.fit(df)
+    instance = df.iloc[0].to_dict()
+    sensitivities = explainer.explain(instance)
+    print("sensitivities from explainer")
+    for feature, val in sensitivities.items():
+        print(f"{feature:8}: {val:>10.4f}")
 
-instance = df.iloc[0].to_dict()
-sensitivities = explainer.explain(instance)
-print("sensitivities from explainer")
-for feature, val in sensitivities.items():
-    print(f"{feature:8}: {val:>10.4f}")
+    print("actual linear model coefficients")
+    for feature, coef in zip(df.columns, model.coef_):
+        print(f"{feature:8}: {coef:>10.4f}")
 
-print("actual linear model coefficients")
-for feature, coef in zip(df.columns, model.coef_):
-    print(f"{feature:8}: {coef:>10.4f}")
-
-explainer.graph()
+    explainer.graph()
 
 
 # potential changes: 
