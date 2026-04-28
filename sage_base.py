@@ -12,10 +12,10 @@ class Sage_Explainer:
 
     def fit(self, data_X: pd.DataFrame, perturbation_strength=0.3, relative_sensitivities = False):
 
-        self.perturbation_factor = 0.3 # perturb feature in range (f_value - (f_std*factor) , f_value + (f_std*factor))
+        self.perturbation_factor = perturbation_strength# perturb feature in range (f_value - (f_std*factor) , f_value + (f_std*factor))
         self.data_X = data_X
 
-        self.std_dict = self.get_scaled_std_ranges(data_X, perturbation_strength) # get feature + scaled std for range radius
+        self.std_dict = self.get_scaled_std_ranges(data_X, self.perturbation_factor) # get feature + scaled std for range radius
         self.relative_sensitivities = relative_sensitivities
 
         self.feature_stds = {col: val / self.perturbation_factor for col, val in self.std_dict.items()} # undo perturbation for raw feature stds
@@ -37,10 +37,16 @@ class Sage_Explainer:
         if self.relative_sensitivities:
             self.sensitivities = {feature_name: sensitivity * self.feature_stds[feature_name] for feature_name, sensitivity in self.sensitivities.items()}
             # multiply sensitivity by feature std to get model change per std
+            # basically undo std scale, but keep perturbation_factor window
 
         return self.sensitivities
     
-    def graph(self): # can only use after .explain()
+    def graph(self, instance: dict | None = None): # can only use after .explain()
+
+        # if an instance is given with .graph(), first get sensitivities for instance, otherwise use the most recent sensitivities
+        if instance is not None:
+            self.explain(instance)
+
         # sort sensitivities by absolute gradient
         sorted_sensitivities = dict(sorted(self.sensitivities.items(), key=lambda item: abs(item[1])))
         
@@ -48,7 +54,7 @@ class Sage_Explainer:
         values = list(sorted_sensitivities.values())
 
 
-        colors = ["red" if x < 0 else "green" for x in values]
+        colors = ["maroon" if x < 0 else "navy" for x in values]
         # plot sensitivity per feature using self.sensitivities dict
         plt.barh(features, values, color=colors)
         plt.axvline(0, color="black", linewidth=1) # center line
@@ -161,5 +167,4 @@ explainer.graph()
 
 
 # potential changes: 
-# add option to find relative slopes (normalize features before fit) or just absolute slope (raw data)
 # do not account for discrete features
