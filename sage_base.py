@@ -10,7 +10,7 @@ class Sage_Explainer:
     def __init__(self, predict_func):
         self.predict_func = predict_func # user input prediction function
 
-    def fit(self, data_X: pd.DataFrame, perturbation_strength=0.3, relative_sensitivities = False):
+    def fit(self, data_X: pd.DataFrame, perturbation_strength=0.3, relative_sensitivities = False, ignore_features: list | None = None, used_features: list | None = None):
 
         self.perturbation_factor = perturbation_strength# perturb feature in range (f_value - (f_std*factor) , f_value + (f_std*factor))
         self.data_X = data_X
@@ -19,12 +19,22 @@ class Sage_Explainer:
         self.relative_sensitivities = relative_sensitivities
 
         self.feature_stds = {col: val / self.perturbation_factor for col, val in self.std_dict.items()} # undo perturbation for raw feature stds
-        
-    def explain(self, instance: dict | pd.Series): # input series, output sensitivity dict
 
+        if ignore_features is None:
+            self.ignore_features = []
+        else:
+            self.ignore_features = ignore_features
+
+        if used_features is None:
+            self.used_features = list(self.std_dict.keys())  # default to all features, use std dict
+        else:
+            self.used_features = used_features
+        
+
+    def explain(self, instance: dict | pd.Series): # input series, output sensitivity dict
+        #user can specify features they want to remove, or specify the only ones hey want to include in sensitivity analysis
         if isinstance(instance, pd.Series):
             instance = instance.to_dict()
-
         self.instance = instance
 
         instance_df = pd.DataFrame([self.instance])
@@ -35,29 +45,34 @@ class Sage_Explainer:
         self.perturbations = self.get_perturbations(ranges_dict, 10) # dict with feature + all perturbations
 
         self.sensitivities = {}
-        for feature, perturbation_list in self.perturbations.items(): # this is where only continuous features can be chosen
-            self.sensitivities[feature] = self.get_sensitivity(feature)
+        for feature, perturbation_list in self.perturbations.items():
+            is_continuous = self.data_X[feature].dtype in [float, int]  # ensure feature values are numeric
+            is_ignored = feature in self.ignore_features # if current feature should be ignored
+            is_used = feature in self.used_features # if current feature is in the user-specified list
+
+            if is_continuous and not is_ignored and is_used: # in order of priority, must be continuous, unignored, and user specified
+                self.sensitivities[feature] = self.get_sensitivity(feature)
 
         if self.relative_sensitivities:
             self.sensitivities = {feature_name: sensitivity * self.feature_stds[feature_name] for feature_name, sensitivity in self.sensitivities.items()}
             # multiply sensitivity by feature std to get model change per std
             # basically undo std scale, but keep perturbation_factor window
-
         return self.sensitivities
     
+
+
+
     def graph(self, instance: dict | pd.Series| None = None): # can only use after .explain()
 
         # if an instance (dict/series) is given with .graph(), first get sensitivities for instance, otherwise use the most recent sensitivities
         if (instance is not None):
             self.explain(instance)
 
-
         # sort sensitivities by absolute gradient
         sorted_sensitivities = dict(sorted(self.sensitivities.items(), key=lambda item: abs(item[1])))
         
         features = list(sorted_sensitivities.keys())
         values = list(sorted_sensitivities.values())
-
 
         colors = ["maroon" if x < 0 else "navy" for x in values]
         # plot sensitivity per feature using self.sensitivities dict
@@ -73,8 +88,7 @@ class Sage_Explainer:
 
     def get_sensitivity(self, feature_name): 
 
-            perturbation_values = self.perturbations[feature_name]
-            
+            perturbation_values = self.perturbations[feature_name] 
 
             batch_df = pd.DataFrame([self.instance] * len(perturbation_values)) # make new df of num_samples copies of instance
             batch_df[feature_name] = perturbation_values # change given feature series to perturbations
@@ -99,7 +113,6 @@ class Sage_Explainer:
         x_vals = perturbation_pred_list[:, 0].reshape(-1, 1)
         y_slopes = perturbation_pred_list[:, 1]
 
-
         target_val = self.instance[feature_name]
 
         # normal distribution around true feature value, farther out points have less weight in regression
@@ -109,7 +122,6 @@ class Sage_Explainer:
         uniformness_strength = std * uniformness_factor
 
         weights = np.exp(-0.5 * ((x_vals.flatten() - target_val) / uniformness_strength)**2)
-
 
         model = LinearRegression()
         model.fit(x_vals, y_slopes, sample_weight=weights)
@@ -141,8 +153,3 @@ class Sage_Explainer:
         return perturbation_dict
 
 
-
-
-
-# potential changes: 
-# do not account for discrete features
