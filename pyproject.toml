@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "sage-explainer"
+version = "0.1.0"
+description = "Sensitivity Analysis with Gradient Estimation"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.3.3",
+    "numpy>=2.3.4",
+    "scikit-learn>=1.7.2",
+    "matplotlib>=3.10.3",
+]
