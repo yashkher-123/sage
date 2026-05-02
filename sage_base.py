@@ -20,7 +20,11 @@ class Sage_Explainer:
 
         self.feature_stds = {col: val / self.perturbation_factor for col, val in self.std_dict.items()} # undo perturbation for raw feature stds
         
-    def explain(self, instance: dict):
+    def explain(self, instance: dict | pd.Series): # input series, output sensitivity dict
+
+        if isinstance(instance, pd.Series):
+            instance = instance.to_dict()
+
         self.instance = instance
 
         instance_df = pd.DataFrame([self.instance])
@@ -41,11 +45,12 @@ class Sage_Explainer:
 
         return self.sensitivities
     
-    def graph(self, instance: dict | None = None): # can only use after .explain()
+    def graph(self, instance: dict | pd.Series| None = None): # can only use after .explain()
 
-        # if an instance is given with .graph(), first get sensitivities for instance, otherwise use the most recent sensitivities
-        if instance is not None:
+        # if an instance (dict/series) is given with .graph(), first get sensitivities for instance, otherwise use the most recent sensitivities
+        if (instance is not None):
             self.explain(instance)
+
 
         # sort sensitivities by absolute gradient
         sorted_sensitivities = dict(sorted(self.sensitivities.items(), key=lambda item: abs(item[1])))
@@ -137,33 +142,6 @@ class Sage_Explainer:
 
 
 
-
-
-
-
-
-# UNIT TEST: linear model coefficients should match sage sensitivities
-if __name__ == "__main__":
-    diabetes = load_diabetes()
-    df = pd.DataFrame(diabetes.data, columns=diabetes.feature_names)
-    target = diabetes.target
-    model = LinearRegression()
-    model.fit(df, target)
-
-    explainer = Sage_Explainer(model.predict)
-    explainer.fit(df)
-
-    instance = df.iloc[0].to_dict()
-    sensitivities = explainer.explain(instance)
-    print("sensitivities from explainer")
-    for feature, val in sensitivities.items():
-        print(f"{feature:8}: {val:>10.4f}")
-
-    print("actual linear model coefficients")
-    for feature, coef in zip(df.columns, model.coef_):
-        print(f"{feature:8}: {coef:>10.4f}")
-
-    explainer.graph()
 
 
 # potential changes: 
