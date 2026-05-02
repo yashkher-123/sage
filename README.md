@@ -50,19 +50,19 @@ explainer.graph()
 
 ## Parameters
 
-Sage_Explainer(predict_func) - must supply a model's prediction function to initialize explainer
+**Sage_Explainer(predict_func)** - must supply a model's prediction function to initialize explainer
 
-fit(self, data_X, perturbation_strength, relative_sensitivities, ignore_features, used_features)
+**fit(self, data_X, perturbation_strength, relative_sensitivities, ignore_features, used_features)**
 - data_X - required, must be pandas DataFrame
 - perturbation_strength - optional (default 0.3), scales window of perturbations. Strength=1 indicates perturbations range within 1 standard deviation of each feature's value
 - relative_sensitivities - optional (default False), scales sensitivities by feature std to make sensitivity magnitudes comparable with each other
 - ignore_features - optional (default empty list), allows SAGE to ignore certain features in sensitivity analysis
 - used_features - optional (default all features list), allows SAGE to only use certain features in sensitivity analysis
 
-explain(self, instance) - must supply an instance in the form of a dict or Series to get local feature sensitivities
+**explain(self, instance)** - must supply an instance in the form of a dict or Series to get local feature sensitivities
 - Returns a dict with feature sensitivities {feature: sensitivity}
 
-graph(self, instance) - supplying instance (dict or Series) is optional, if not given it defaults to graphing a previously-given instance from explain()
+**graph(self, instance)** - supplying instance (dict or Series) is optional, if not given it defaults to graphing a previously-given instance from explain()
 - Returns a matplotlib bar chart of ranked feature sensitivities
 
 
