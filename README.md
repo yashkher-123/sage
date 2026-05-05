@@ -50,20 +50,33 @@ explainer.graph()
 
 ## Parameters
 
-**Sage_Explainer(predict_func)** - must supply a model's prediction function to initialize explainer
+**`Sage_Explainer(predict_func)`** - must supply a model's prediction function to initialize explainer
 
-**fit(self, data_X, perturbation_strength, relative_sensitivities, ignore_features, used_features)**
-- data_X - required, must be pandas DataFrame
-- perturbation_strength - optional (default 0.3), scales window of perturbations. Strength=1 indicates perturbations range within 1 standard deviation of each feature's value
-- relative_sensitivities - optional (default False), scales sensitivities by feature std to make feature sensitivity magnitudes comparable with each other
-- ignore_features - optional (default empty list), allows SAGE to ignore certain features in sensitivity analysis
-- used_features - optional (default all features list), allows SAGE to only use certain features in sensitivity analysis
+**`fit(self, data_X, perturbation_strength, relative_sensitivities, ignore_features, used_features)`**
+- `data_X` - required, must be pandas DataFrame
+- `perturbation_strength` - optional (default 0.3), scales window of perturbations. Strength=1 indicates perturbations range within 1 standard deviation of each feature's value
+- `relative_sensitivities` - optional (default False), scales sensitivities by feature std to make feature sensitivity magnitudes comparable with each other
+- `ignore_features` - optional (default empty list), allows SAGE to ignore certain features in sensitivity analysis
+- `used_features` - optional (default all features list), allows SAGE to only use certain features in sensitivity analysis
 
-**explain(self, instance)** - must supply an instance in the form of a dict or Series to get local feature sensitivities
-- Returns a dict with feature sensitivities {feature: sensitivity}
+**`explain(self, instance)`** - must supply an instance in the form of a dict or Series to get local feature sensitivities
+- Returns a dict with feature sensitivities `{feature: sensitivity}`
 
-**graph(self, instance)** - supplying instance (dict or Series) is optional, if not given it defaults to graphing a previously-given instance from explain()
+**`graph(self, instance)`** - supplying instance (dict or Series) is optional, if not given it defaults to graphing a previously-given instance from explain()
 - Returns a matplotlib bar chart of ranked feature sensitivities
+
+
+## How it works
+
+1. **Fit to dataset:** Compute the standard deviation of each continuous feature across the background dataset. Scale each std by `perturbation_strength` to define the local window radius around any given instance.
+
+2. **Perturb features:** For a given instance, generate evenly spaced perturbation values within the local window `(feature_value - scaled_std, feature_value + scaled_std)` for each feature. The original feature value is excluded from perturbations to avoid division by zero.
+
+3. **Compute secant slopes:** For each perturbation, replace the feature value in the instance and run it through the model. Compute the secant slope between the perturbed prediction and the original prediction: `slope = (perturbed_pred - original_pred) / (perturbed_value - original_value)`. This gives a set of local slope estimates across the window.
+
+4. **Regress to estimate sensitivity:** Fit a gaussian-weighted linear regression over the perturbation values (x) and their corresponding secant slopes (y). Points closer to the original feature value are weighted more heavily. The regression is then evaluated at the original feature value to produce a single sensitivity estimate: the approximate rate of change of the model's prediction with respect to that feature at that instance.
+
+5. **Optional relative scaling:** If `relative_sensitivities=True`, each sensitivity is multiplied by the feature's standard deviation, converting units to *change in prediction per one standard deviation of the feature*. This makes sensitivities directly comparable across features with different scales.
 
 
 ## Limitations
