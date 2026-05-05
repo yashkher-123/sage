@@ -34,7 +34,7 @@ explainer.fit(
     data_X=X_train,
     perturbation_strength=0.3,      # optional, default 0.3
     relative_sensitivities=False,   # optional, set True for comparable scaling
-    ignore_features=["feature_a"],  # optional
+    ignore_features=["feature_a"],  # optional, defaults to none
     used_features=["feature_b", "feature_c"]  # optional, defaults to all
 )
 
@@ -55,7 +55,7 @@ explainer.graph()
 **fit(self, data_X, perturbation_strength, relative_sensitivities, ignore_features, used_features)**
 - data_X - required, must be pandas DataFrame
 - perturbation_strength - optional (default 0.3), scales window of perturbations. Strength=1 indicates perturbations range within 1 standard deviation of each feature's value
-- relative_sensitivities - optional (default False), scales sensitivities by feature std to make sensitivity magnitudes comparable with each other
+- relative_sensitivities - optional (default False), scales sensitivities by feature std to make feature sensitivity magnitudes comparable with each other
 - ignore_features - optional (default empty list), allows SAGE to ignore certain features in sensitivity analysis
 - used_features - optional (default all features list), allows SAGE to only use certain features in sensitivity analysis
 
