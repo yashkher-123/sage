@@ -79,7 +79,7 @@ class Sage_Explainer:
         plt.axvline(0, color="black", linewidth=1) # center line
         plt.xlabel("sensitivity")
         plt.ylabel("features")
-        plt.title("Feature sensitivities")
+        plt.title(f"Feature sensitivities, relative = {self.relative_sensitivities}")
         plt.grid(axis="x", alpha=0.3)
         plt.tight_layout()
         plt.show()
