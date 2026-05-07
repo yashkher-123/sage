@@ -152,3 +152,7 @@ class Sage_Explainer:
         return perturbation_dict
 
 
+# instead of multiplying by std to get relative sensoitivties, normalize data before even sending it to model,
+#   the issue would be that the preidct function would not work properly with non-normalized features
+#   make a method that can translate between scaled and nonscaled feature values
+# the main reason relative sensitivities exists is so that features on different scales can be compared
