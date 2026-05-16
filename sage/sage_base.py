@@ -128,9 +128,11 @@ class Sage_Explainer:
         # linear regression of x vs y, secant slope vs perturbation
 
 
+    
     def get_scaled_std_ranges(self, data: pd.DataFrame, perturbation_factor):
-        std_dict = data.std(ddof=0).to_dict() # assume population level variance
-        std_dict = {col: val * perturbation_factor for col, val in std_dict.items()} # multiply std by perturbation factor
+        numeric_data = data.select_dtypes(include=[np.number])  # add this
+        std_dict = numeric_data.std(ddof=0).to_dict()
+        std_dict = {col: val * perturbation_factor for col, val in std_dict.items()}
         return std_dict
 
     def get_perturbations(self, ranges: dict, num_samples):
