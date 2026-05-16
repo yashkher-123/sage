@@ -16,7 +16,6 @@ Paired with explainers such as SHAP/LIME, SAGE allows users to act on prediction
 ## Capabilities
 - Model-agnostic sensitivity analysis: works with any model via a user-supplied prediction function + background dataset
 - Weighted secant slope regression: perturbs each continuous feature within a local window around the instance, computes secant slopes, and fits a gaussian-weighted linear regression to estimate sensitivity at the exact instance value
-- Relative sensitivity mode: optionally scales sensitivities by each feature's standard deviation to produce a change in prediction per one standard deviation metric, making feature sensitivities directly comparable
 - Selective feature analysis: user can supply features to ignore or include in sensitivity analysis, SAGE automatically filters out non-numeric features
 - Sensitivity visualization:  horizontal bar chart showing signed sensitivities per feature, sorted by magnitude, with positive/negative coloring
 
@@ -33,7 +32,6 @@ explainer = Sage_Explainer(predict_func=model.predict) # provide predict functio
 explainer.fit(
     data_X=X_train,
     perturbation_strength=0.3,      # optional, default 0.3
-    relative_sensitivities=False,   # optional, set True for comparable scaling
     ignore_features=["feature_a"],  # optional, defaults to none
     used_features=["feature_b", "feature_c"]  # optional, defaults to all
 )
@@ -52,10 +50,9 @@ explainer.graph()
 
 **`Sage_Explainer(predict_func)`** - must supply a model's prediction function to initialize explainer
 
-**`fit(self, data_X, perturbation_strength, relative_sensitivities, ignore_features, used_features)`**
+**`fit(self, data_X, perturbation_strength, ignore_features, used_features)`**
 - `data_X` - required, must be pandas DataFrame
 - `perturbation_strength` - optional (default 0.3), scales window of perturbations. Strength=1 indicates perturbations range within 1 standard deviation of each feature's value
-- `relative_sensitivities` - optional (default False), scales sensitivities by feature std to make feature sensitivity magnitudes comparable with each other
 - `ignore_features` - optional (default empty list), allows SAGE to ignore certain features in sensitivity analysis
 - `used_features` - optional (default all features list), allows SAGE to only use certain features in sensitivity analysis
 
@@ -76,7 +73,6 @@ explainer.graph()
 
 4. **Regress to estimate sensitivity:** Fit a gaussian-weighted linear regression over the perturbation values (x) and their corresponding secant slopes (y). Points closer to the original feature value are weighted more heavily. The regression is then evaluated at the original feature value to produce a single sensitivity estimate: the approximate rate of change of the model's prediction with respect to that feature at that instance.
 
-5. **Optional relative scaling:** If `relative_sensitivities=True`, each sensitivity is multiplied by the feature's standard deviation, converting units to *change in prediction per one standard deviation of the feature*. This makes sensitivities directly comparable across features with different scales.
 
 
 ## Limitations
