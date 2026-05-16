@@ -9,13 +9,13 @@ class Sage_Explainer:
     def __init__(self, predict_func):
         self.predict_func = predict_func # user input prediction function
 
-    def fit(self, data_X: pd.DataFrame, perturbation_strength=0.3, relative_sensitivities = False, ignore_features: list | None = None, used_features: list | None = None):
+    def fit(self, data_X: pd.DataFrame, perturbation_strength=0.3, ignore_features: list | None = None, used_features: list | None = None):
 
         self.perturbation_factor = perturbation_strength# perturb feature in range (f_value - (f_std*factor) , f_value + (f_std*factor))
+
         self.data_X = data_X
 
         self.std_dict = self.get_scaled_std_ranges(data_X, self.perturbation_factor) # get feature + scaled std for range radius
-        self.relative_sensitivities = relative_sensitivities
 
         self.feature_stds = {col: val / self.perturbation_factor for col, val in self.std_dict.items()} # undo perturbation for raw feature stds
 
@@ -52,14 +52,7 @@ class Sage_Explainer:
             if is_continuous and not is_ignored and is_used: # in order of priority, must be continuous, unignored, and user specified
                 self.sensitivities[feature] = self.get_sensitivity(feature)
 
-        if self.relative_sensitivities:
-            self.sensitivities = {feature_name: sensitivity * self.feature_stds[feature_name] for feature_name, sensitivity in self.sensitivities.items()}
-            # multiply sensitivity by feature std to get model change per std
-            # basically undo std scale, but keep perturbation_factor window
         return self.sensitivities
-    
-
-
 
     def graph(self, instance: dict | pd.Series| None = None): # can only use after .explain()
 
@@ -79,10 +72,11 @@ class Sage_Explainer:
         plt.axvline(0, color="black", linewidth=1) # center line
         plt.xlabel("sensitivity")
         plt.ylabel("features")
-        plt.title(f"Feature sensitivities, relative = {self.relative_sensitivities}")
+        plt.title(f"Feature sensitivities")
         plt.grid(axis="x", alpha=0.3)
         plt.tight_layout()
         plt.show()
+
 
 
     def get_sensitivity(self, feature_name): 
@@ -151,8 +145,3 @@ class Sage_Explainer:
             
         return perturbation_dict
 
-
-# instead of multiplying by std to get relative sensoitivties, normalize data before even sending it to model,
-#   the issue would be that the preidct function would not work properly with non-normalized features
-#   make a method that can translate between scaled and nonscaled feature values
-# the main reason relative sensitivities exists is so that features on different scales can be compared
