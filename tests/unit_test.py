@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
-from sage_base import Sage_Explainer
+from sage import Sage_Explainer
 
 
 @pytest.fixture
