@@ -18,7 +18,7 @@ Paired with explainers such as SHAP/LIME, SAGE allows users to act on prediction
 - Weighted secant slope regression: perturbs each continuous feature within a local window around the instance, computes secant slopes, and fits a gaussian-weighted linear regression to estimate sensitivity at the exact instance value
 - Selective feature analysis: user can supply features to ignore or include in sensitivity analysis, SAGE automatically filters out non-numeric features
 - Sensitivity visualization:  horizontal bar chart showing signed sensitivities per feature, sorted by magnitude, with positive/negative coloring
-
+- Epsilon-free stability: unlike finite difference methods whose accuracy depends heavily on a manually-tuned epsilon parameter (too small causes instability on piecewise models, too large overshoots local variation), SAGE's perturbation window scales automatically with each feature's standard deviation
 
 ## Usage
 
@@ -93,4 +93,4 @@ explainer.graph()
 
 ## Contact
 
-yashpkher@gmail.com, atharvasoni08@gmail.com
+yashpkher@gmail.com

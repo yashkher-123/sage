@@ -101,7 +101,7 @@ class Sage_Explainer:
             return regressed_sensitivity
         
 
-    def regress_sensitivity(self, perturbation_pred_list: np.ndarray, feature_name, uniformness_factor = 1):
+    def regress_sensitivity(self, perturbation_pred_list: np.ndarray, feature_name, uniformness_factor = 0.8):
         #reshape array so it works with linear regression
         x_vals = perturbation_pred_list[:, 0].reshape(-1, 1)
         y_slopes = perturbation_pred_list[:, 1]
